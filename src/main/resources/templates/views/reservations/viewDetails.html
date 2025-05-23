@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails de la Réservation</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/side-bar}"></div>
+
+    <div class="header">
+        <h1>Détails de la Réservation <span th:text="${reservation.idReservation}"></span></h1>
+    </div>
+
+    <div class="form-container">
+        <h2>Informations de la Réservation</h2>
+        <p><strong>ID Réservation :</strong> <span th:text="${reservation.idReservation}"></span></p>
+        <p><strong>Date de Réservation :</strong> <span th:text="${reservation.dateReservation}"></span></p>
+        <p><strong>Prix :</strong> <span th:text="${reservation.prix} + ' €'"></span></p>
+        <p><strong>Vol :</strong> <span th:text="${reservation.volInfo}"></span></p>
+    </div>
+
+    <div class="table-container" th:if="${!#lists.isEmpty(details)}">
+        <h2>Détails des Passagers</h2>
+        <div class="table-responsive">
+            <table class="projects-table">
+                <thead>
+                    <tr>
+                        <th>Nom</th>
+                        <th>Âge</th>
+                        <th>Passeport</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="detail : ${details}">
+                        <td th:text="${detail.nom}"></td>
+                        <td th:text="${detail.age} + ' ans'"></td>
+                        <td>
+                            <span th:if="${detail.passport != null}" th:text="'Fichier téléchargé'"></span>
+                            <span th:if="${detail.passport == null}" th:text="'Aucun fichier'"></span>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(details)}">
+                        <td colspan="3">Aucun détail trouvé pour cette réservation</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <a th:href="@{/reservations}" class="btn btn-cancel">Retour à la liste</a>
+        <a th:href="@{/reservations/export/{id}(id=${reservation.idReservation})}" class="btn btn-export">Exporter</a>
+    </div>
+
+    <div th:replace="~{fragments/footer}"></div>
+</body>
+</html>

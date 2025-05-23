@@ -1,0 +1,695 @@
+j ai cette projet sur spring , voici mon base : CREATE TABLE Avion(
+   id_avion VARCHAR(50) ,
+   date_fabrication DATE NOT NULL,
+   model VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_avion)
+);
+
+CREATE TABLE Type_siege(
+   id_Type_siege VARCHAR(50) ,
+   libelle VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_Type_siege)
+);
+
+CREATE TABLE Ville(
+   id_ville VARCHAR(50) ,
+   nom VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_ville)
+);
+
+CREATE TABLE Critere_reservation(
+   id_reservation VARCHAR(50) ,
+   heur NUMERIC(15,2)   NOT NULL,
+   date_changement DATE,
+   PRIMARY KEY(id_reservation)
+);
+
+CREATE TABLE Vol(
+   id_vol VARCHAR(50) ,
+   date_vol TIMESTAMP NOT NULL,
+   enPromotion BOOLEAN,
+   id_ville VARCHAR(50)  NOT NULL,
+   id_ville_1 VARCHAR(50)  NOT NULL,
+   id_avion VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_vol),
+   FOREIGN KEY(id_ville) REFERENCES Ville(id_ville),
+   FOREIGN KEY(id_ville_1) REFERENCES Ville(id_ville),
+   FOREIGN KEY(id_avion) REFERENCES Avion(id_avion)
+);
+
+CREATE TABLE Promotion(
+   id_promotion VARCHAR(50) ,
+   date_promotion DATE,
+   id_vol VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_promotion),
+   FOREIGN KEY(id_vol) REFERENCES Vol(id_vol)
+);
+
+CREATE TABLE annulation_reservation(
+   id_annulation_reservation VARCHAR(50) ,
+   heur NUMERIC(15,2)   NOT NULL,
+   date_changement DATE,
+   PRIMARY KEY(id_annulation_reservation)
+);
+
+CREATE TABLE Role(
+   id_role VARCHAR(50) ,
+   libelle VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_role)
+);
+
+CREATE TABLE Classe(
+   id_classe VARCHAR(50) ,
+   min_age INTEGER,
+   max_age INTEGER,
+   PRIMARY KEY(id_classe)
+);
+
+CREATE TABLE Utilisateur(
+   id_utilisateur VARCHAR(50) ,
+   email VARCHAR(50) ,
+   mdp VARCHAR(255) ,
+   nom VARCHAR(50) ,
+   passport TEXT,
+   id_role VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_utilisateur),
+   FOREIGN KEY(id_role) REFERENCES Role(id_role)
+);
+
+CREATE TABLE Reservation(
+   id_reservation VARCHAR(50) ,
+   date_reservation TIMESTAMP NOT NULL,
+   prix NUMERIC(15,2)  ,
+   id_utilisateur VARCHAR(50)  NOT NULL,
+   id_vol VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_reservation), 
+   FOREIGN KEY(id_vol) REFERENCES Vol(id_vol),
+   FOREIGN KEY(id_utilisateur) REFERENCES Utilisateur(id_utilisateur)
+);
+
+CREATE TABLE DetailsReservation(
+   id_detailsReservation VARCHAR(50) ,
+   nom TEXT,
+   age INTEGER,
+   passport VARCHAR(50) ,
+   id_reservation VARCHAR(50)  NOT NULL,
+   PRIMARY KEY(id_detailsReservation),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation)
+);
+
+CREATE TABLE Avion_siege(
+   id_avion VARCHAR(50) ,
+   id_Type_siege VARCHAR(50) ,
+   nbr_siege INTEGER NOT NULL,
+   PRIMARY KEY(id_avion, id_Type_siege),
+   FOREIGN KEY(id_avion) REFERENCES Avion(id_avion),
+   FOREIGN KEY(id_Type_siege) REFERENCES Type_siege(id_Type_siege)
+);
+
+CREATE TABLE promotion_siege(
+   id_Type_siege VARCHAR(50) ,
+   id_promotion VARCHAR(50) ,
+   nbr_siege INTEGER NOT NULL,
+   promotion NUMERIC(15,2)   NOT NULL,
+   PRIMARY KEY(id_Type_siege, id_promotion),
+   FOREIGN KEY(id_Type_siege) REFERENCES Type_siege(id_Type_siege),
+   FOREIGN KEY(id_promotion) REFERENCES Promotion(id_promotion)
+);
+
+CREATE TABLE vol_siege(
+   id_Type_siege VARCHAR(50) ,
+   id_vol VARCHAR(50) ,
+   prix NUMERIC(15,2)   NOT NULL,
+   PRIMARY KEY(id_Type_siege, id_vol),
+   FOREIGN KEY(id_Type_siege) REFERENCES Type_siege(id_Type_siege),
+   FOREIGN KEY(id_vol) REFERENCES Vol(id_vol)
+);
+
+CREATE TABLE Reservation_classe(
+   id_Type_siege VARCHAR(50) ,
+   id_reservation VARCHAR(50) ,
+   id_classe VARCHAR(50) ,
+   nombre INTEGER ,
+   PRIMARY KEY(id_Type_siege, id_reservation, id_classe),
+   FOREIGN KEY(id_Type_siege) REFERENCES Type_siege(id_Type_siege),
+   FOREIGN KEY(id_reservation) REFERENCES Reservation(id_reservation),
+   FOREIGN KEY(id_classe) REFERENCES Classe(id_classe)
+);
+
+CREATE TABLE Facteur_classe(
+   id_facteur_classe VARCHAR(50), 
+   facteur NUMERIC(15,2)  , 
+   id_classe VARCHAR(50),
+   PRIMARY KEY(id_facteur_classe),
+   FOREIGN KEY(id_classe) REFERENCES Classe(id_classe)
+);
+
+CREATE INDEX idx_reservation_date ON Reservation(date_reservation);
+CREATE INDEX idx_promotion_siege ON promotion_siege(id_promotion, id_Type_siege);
+CREATE INDEX idx_rc_id_reservation ON Reservation_classe(id_reservation);  les fonctionalites sur spring c est un liste de reservation puis ajout d un boutton details pius il envoye sur un formulaire de detail Reservtion avec le id reservation selectionner , voici les code que les realise : <!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Détails Réservation</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/side-bar}"></div>
+
+    <div class="header">
+        <h1>Ajouter Détails pour Réservation <span th:text="${idReservation}"></span></h1>
+    </div>
+
+    <div class="form-container">
+        <div th:if="${error}" class="error" th:text="${error}"></div>
+        <form th:action="@{/reservations/details/add}" method="post" th:object="${detail}">
+            <input type="hidden" name="idReservation" th:value="${idReservation}" />
+            <div class="form-group">
+                <label for="nom">Nom :</label>
+                <input type="text" id="nom" name="nom" th:field="*{nom}" />
+                <div th:if="${#fields.hasErrors('nom')}" th:errors="*{nom}" class="error"></div>
+            </div>
+            <div class="form-group">
+                <label for="age">Âge :</label>
+                <input type="number" id="age" name="age" th:field="*{age}" />
+                <div th:if="${#fields.hasErrors('age')}" th:errors="*{age}" class="error"></div>
+            </div>
+            <div class="form-group">
+                <label for="passport">Passeport :</label>
+                <input type="text" id="passport" name="passport" th:field="*{passport}" />
+                <div th:if="${#fields.hasErrors('passport')}" th:errors="*{passport}" class="error"></div>
+            </div>
+            <button type="submit" class="btn btn-edit">Ajouter</button>
+            <a th:href="@{/reservations}" class="btn btn-cancel">Annuler</a>
+        </form>
+    </div>
+
+    <div class="table-container" th:if="${!#lists.isEmpty(detailsList)}">
+        <h2>Détails dans le panier</h2>
+        <ul>
+            <li th:each="d : ${detailsList}" th:text="${d.nom + ' - ' + d.age + ' ans - ' + d.passport}"></li>
+        </ul>
+    </div>
+
+    <div class="form-container" th:if="${!#lists.isEmpty(detailsList)}">
+        <form th:action="@{/reservations/details/confirm}" method="post">
+            <input type="hidden" name="idReservation" th:value="${idReservation}" />
+            <button type="submit" class="btn btn-confirm">Confirmer</button>
+        </form>
+    </div>
+
+    <div th:replace="~{fragments/footer}"></div>
+</body>
+</html> <!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réservations</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/side-bar}"></div>
+
+    <div class="header">
+        <h1>Réservations</h1>
+    </div>
+
+    <div class="table-container" th:if="${reservations}">
+        <div class="table-responsive">
+            <table class="projects-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Prix</th>
+                        <th>Vol</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="reservation : ${reservations}">
+                        <td th:text="${reservation.idReservation}"></td>
+                        <td th:text="${reservation.dateReservation}"></td>
+                        <td th:text="${reservation.prix} + ' €'"></td>
+                        <td th:text="${reservation.volInfo}"></td>
+                        <td>
+                            <a th:href="@{/reservations/details/{id}(id=${reservation.idReservation})}" class="btn btn-edit">Ajouter détails</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservations)}">
+                        <td colspan="5">Aucune réservation trouvée</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer}"></div>
+</body>
+</html> package mg.itu.controller;
+
+import mg.itu.dto.ReservationDTO;
+import mg.itu.model.DetailsReservation;
+import mg.itu.service.ReservationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.util.ArrayList;
+import java.util.List;
+
+@Controller
+@RequestMapping("/reservations")
+@SessionAttributes("detailsList")
+public class ReservationController {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReservationController.class);
+
+    @Autowired
+    private ReservationService reservationService;
+
+    @ModelAttribute("detailsList")
+    public List<DetailsReservation> detailsList() {
+        return new ArrayList<>();
+    }
+
+    @GetMapping
+    public String listReservations(Model model) {
+        model.addAttribute("reservations", reservationService.getAllReservations());
+        return "views/reservations/list";
+    }
+
+    @GetMapping("/details/{id}")
+    public String showDetailsForm(@PathVariable("id") String idReservation, Model model,
+                                  @ModelAttribute("detailsList") List<DetailsReservation> detailsList) {
+        ReservationDTO reservation = reservationService.getReservationById(idReservation)
+                .orElseThrow(() -> new IllegalArgumentException("Réservation non trouvée"));
+        model.addAttribute("reservation", reservation);
+        model.addAttribute("detail", new DetailsReservation());
+        model.addAttribute("idReservation", idReservation);
+        model.addAttribute("detailsList", detailsList);
+        return "views/reservations/detailsForm";
+    }
+
+    @PostMapping("/details/add")
+    public String addDetail(@ModelAttribute("detail") @Valid DetailsReservation detail,
+                            BindingResult result,
+                            @RequestParam("idReservation") String idReservation,
+                            @ModelAttribute("detailsList") List<DetailsReservation> detailsList,
+                            Model model) {
+        if (result.hasErrors()) {
+            model.addAttribute("reservation", reservationService.getReservationById(idReservation)
+                    .orElseThrow(() -> new IllegalArgumentException("Réservation non trouvée")));
+            model.addAttribute("idReservation", idReservation);
+            model.addAttribute("detailsList", detailsList);
+            return "views/reservations/detailsForm";
+        }
+
+        if (reservationService.canAddDetail(idReservation, detailsList.size())) {
+            detail.setId_reservation(idReservation);
+            detailsList.add(detail);
+            logger.info("Détail ajouté au panier pour idReservation: {}, nom: {}", idReservation, detail.getNom());
+        } else {
+            model.addAttribute("error", "Nombre maximum de passagers atteint pour cette réservation.");
+            model.addAttribute("reservation", reservationService.getReservationById(idReservation)
+                    .orElseThrow(() -> new IllegalArgumentException("Réservation non trouvée")));
+            model.addAttribute("detail", new DetailsReservation());
+            model.addAttribute("idReservation", idReservation);
+            model.addAttribute("detailsList", detailsList);
+            return "views/reservations/detailsForm";
+        }
+        return "redirect:/reservations/details/" + idReservation;
+    }
+
+    @PostMapping("/details/confirm")
+    public String confirmDetails(@RequestParam("idReservation") String idReservation,
+                                 @ModelAttribute("detailsList") List<DetailsReservation> detailsList,
+                                 Model model) {
+        logger.info("Confirmation des détails pour idReservation: {}, nombre de détails: {}", idReservation, detailsList.size());
+        try {
+            reservationService.saveDetails(detailsList, idReservation);
+            detailsList.clear();
+            logger.info("Détails confirmés et panier vidé pour idReservation: {}", idReservation);
+            return "redirect:/reservations";
+        } catch (Exception e) {
+            logger.error("Erreur lors de la confirmation des détails: {}", e.getMessage());
+            model.addAttribute("error", "Erreur lors de la confirmation des détails : " + e.getMessage());
+            model.addAttribute("reservation", reservationService.getReservationById(idReservation)
+                    .orElseThrow(() -> new IllegalArgumentException("Réservation non trouvée")));
+            model.addAttribute("detail", new DetailsReservation());
+            model.addAttribute("idReservation", idReservation);
+            model.addAttribute("detailsList", detailsList);
+            return "views/reservations/detailsForm";
+        }
+    }
+} package mg.itu.dto;
+
+public class DetailsReservationDTO {
+
+    private String idDetailsReservation;
+    private String nom;
+    private Integer age;
+    private String passport;
+    private String idReservation;
+
+    
+    public String getIdDetailsReservation() {
+        return idDetailsReservation;
+    }
+
+    public void setIdDetailsReservation(String idDetailsReservation) {
+        this.idDetailsReservation = idDetailsReservation;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    public String getPassport() {
+        return passport;
+    }
+
+    public void setPassport(String passport) {
+        this.passport = passport;
+    }
+
+    public String getIdReservation() {
+        return idReservation;
+    }
+
+    public void setIdReservation(String idReservation) {
+        this.idReservation = idReservation;
+    }
+} package mg.itu.dto;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+
+public class ReservationDTO {
+
+    private String idReservation;
+    private LocalDateTime dateReservation;
+    private BigDecimal prix;
+    private String idVol;
+    private String volInfo; 
+
+    
+    public ReservationDTO() {}
+
+    
+    public String getIdReservation() {
+        return idReservation;
+    }
+
+    public void setIdReservation(String idReservation) {
+        this.idReservation = idReservation;
+    }
+
+    public LocalDateTime getDateReservation() {
+        return dateReservation;
+    }
+
+    public void setDateReservation(LocalDateTime dateReservation) {
+        this.dateReservation = dateReservation;
+    }
+
+    public BigDecimal getPrix() {
+        return prix;
+    }
+
+    public void setPrix(BigDecimal prix) {
+        this.prix = prix;
+    }
+
+    public String getIdVol() {
+        return idVol;
+    }
+
+    public void setIdVol(String idVol) {
+        this.idVol = idVol;
+    }
+
+    public String getVolInfo() {
+        return volInfo;
+    }
+
+    public void setVolInfo(String volInfo) {
+        this.volInfo = volInfo;
+    }
+}
+
+package mg.itu.mapper;
+
+import mg.itu.dto.DetailsReservationDTO;
+import mg.itu.dto.ReservationDTO;
+import mg.itu.model.DetailsReservation;
+import mg.itu.model.Reservation;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(componentModel = "spring")
+public interface ReservationMapper {
+
+    ReservationMapper INSTANCE = Mappers.getMapper(ReservationMapper.class);
+
+    @Mapping(source = "vol.idVol", target = "idVol")
+    @Mapping(target = "volInfo", expression = "java(reservation.getVol().getVilleDepart().getNom() + \" - \" + reservation.getVol().getVilleArrivee().getNom())")
+    ReservationDTO toReservationDTO(Reservation reservation);
+
+    @Mapping(source = "reservation.idReservation", target = "idReservation")
+    DetailsReservationDTO toDetailsReservationDTO(DetailsReservation detailsReservation);
+
+    DetailsReservation toDetailsReservation(DetailsReservationDTO detailsReservationDTO);
+}
+
+il y a aussi les model : Classe,DetailsReservation,Reservation,ReservationClasse,ReservationClasseId,Role,TypeSiege,Utilisateur , Ville et VOl 
+
+package mg.itu.repository;
+
+import mg.itu.model.DetailsReservation;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface DetailsReservationRepository extends JpaRepository<DetailsReservation, String> {
+    List<DetailsReservation> findByReservationIdReservation(String idReservation);
+}
+
+package mg.itu.repository;
+
+import mg.itu.model.ReservationClasse;
+import mg.itu.model.ReservationClasseId;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ReservationClasseRepository extends JpaRepository<ReservationClasse, ReservationClasseId> {
+
+    @Query("SELECT COALESCE(SUM(rc.nombre), 0) FROM ReservationClasse rc WHERE rc.reservation.idReservation = :idReservation")
+    Integer sumNombreByReservationId(String idReservation);
+}
+
+
+package mg.itu.repository;
+
+import mg.itu.model.Reservation;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface ReservationRepository extends JpaRepository<Reservation, String> {
+}
+
+package mg.itu.repository;
+
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import mg.itu.model.Role;
+
+public interface RoleRepository extends JpaRepository<Role, String> {
+    Optional<Role> findByLibelle(String libelle);
+}
+
+
+package mg.itu.repository;
+
+import mg.itu.model.Utilisateur;
+
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UtilisateurRepository extends JpaRepository<Utilisateur, String> {
+    Utilisateur findByTelephone(String telephone);   
+    Utilisateur findByIdUtilisateur(String idUtilisateur);
+}
+
+package mg.itu.repository;
+
+import mg.itu.model.Vol;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface VolRepository extends JpaRepository<Vol, String> {
+}
+
+package mg.itu.service;
+
+import mg.itu.dto.DetailsReservationDTO;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+@Service
+public class CartService {
+
+    private static final String CART_ATTRIBUTE = "cartDetails";
+
+    public void addToCart(HttpSession session, DetailsReservationDTO detail) {
+        List<DetailsReservationDTO> cart = getCart(session);
+        detail.setIdDetailsReservation(UUID.randomUUID().toString()); 
+        cart.add(detail);
+        session.setAttribute(CART_ATTRIBUTE, cart);
+    }
+
+    public List<DetailsReservationDTO> getCart(HttpSession session) {
+        List<DetailsReservationDTO> cart = (List<DetailsReservationDTO>) session.getAttribute(CART_ATTRIBUTE);
+        if (cart == null) {
+            cart = new ArrayList<>();
+            session.setAttribute(CART_ATTRIBUTE, cart);
+        }
+        return cart;
+    }
+
+    public void clearCart(HttpSession session) {
+        session.removeAttribute(CART_ATTRIBUTE);
+    }
+}
+
+package mg.itu.service;
+
+import mg.itu.dto.ReservationDTO;
+import mg.itu.mapper.ReservationMapper;
+import mg.itu.model.DetailsReservation;
+import mg.itu.model.Reservation;
+import mg.itu.repository.DetailsReservationRepository;
+import mg.itu.repository.ReservationClasseRepository;
+import mg.itu.repository.ReservationRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Collectors;
+
+@Service
+public class ReservationService {
+
+    private static final Logger logger = LoggerFactory.getLogger(ReservationService.class);
+
+    @Autowired
+    private ReservationRepository reservationRepository;
+
+    @Autowired
+    private DetailsReservationRepository detailsReservationRepository;
+
+    @Autowired
+    private ReservationClasseRepository reservationClasseRepository;
+
+    @Autowired
+    private ReservationMapper reservationMapper;
+
+    public List<ReservationDTO> getAllReservations() {
+        return reservationRepository.findAll()
+                .stream()
+                .map(reservationMapper::toReservationDTO)
+                .collect(Collectors.toList());
+    }
+
+    public Optional<ReservationDTO> getReservationById(String id) {
+        return reservationRepository.findById(id)
+                .map(reservationMapper::toReservationDTO);
+    }
+
+    public boolean canAddDetail(String idReservation, int currentDetailCount) {
+        Optional<Reservation> reservationOpt = reservationRepository.findById(idReservation);
+        if (reservationOpt.isPresent()) {
+            Integer maxDetails = reservationClasseRepository.sumNombreByReservationId(idReservation);
+            logger.debug("Limite pour idReservation {}: {} détails, actuel: {}", idReservation, maxDetails, currentDetailCount);
+            return maxDetails != null && currentDetailCount < maxDetails;
+        }
+        return false;
+    }
+
+    @Transactional
+    public void saveDetails(List<DetailsReservation> detailsList, String idReservation) {
+        logger.info("Début de l'enregistrement des détails pour la réservation : {}", idReservation);
+        Optional<Reservation> reservationOpt = reservationRepository.findById(idReservation);
+        if (!reservationOpt.isPresent()) {
+            logger.error("Réservation non trouvée : {}", idReservation);
+            throw new IllegalArgumentException("Réservation non trouvée : " + idReservation);
+        }
+        Reservation reservation = reservationOpt.get();
+        logger.debug("Réservation chargée : id={}", reservation.getIdReservation());
+
+        for (DetailsReservation detail : detailsList) {
+            logger.debug("Traitement du détail - nom: {}, age: {}, passport: {}, idReservation: {}", 
+                        detail.getNom(), detail.getAge(), detail.getPassport(), idReservation);
+            if (detail.getIdDetailsReservation() == null) {
+                String newId = UUID.randomUUID().toString();
+                detail.setIdDetailsReservation(newId);
+                logger.debug("ID généré pour le détail : {}", newId);
+            }
+            detail.setReservation(reservation);
+            try {
+                logger.debug("Avant sauvegarde - détail: id={}, nom={}", detail.getIdDetailsReservation(), detail.getNom());
+                DetailsReservation savedDetail = detailsReservationRepository.save(detail);
+                detailsReservationRepository.flush();
+                logger.info("Détail enregistré avec succès : id={}, nom={}", savedDetail.getIdDetailsReservation(), savedDetail.getNom());
+                
+                Optional<DetailsReservation> verifiedDetail = detailsReservationRepository.findById(savedDetail.getIdDetailsReservation());
+                if (verifiedDetail.isPresent()) {
+                    logger.info("Vérification réussie : détail présent dans la base avec id={}", savedDetail.getIdDetailsReservation());
+                } else {
+                    logger.error("Échec de la vérification : détail avec id={} non trouvé après insertion", savedDetail.getIdDetailsReservation());
+                    throw new RuntimeException("Détail non persisté dans la base de données");
+                }
+            } catch (Exception e) {
+                logger.error("Erreur lors de l'enregistrement du détail {}: {}", detail.getNom(), e.getMessage(), e);
+                throw new RuntimeException("Erreur lors de l'enregistrement du détail : " + e.getMessage(), e);
+            }
+        }
+        logger.info("Enregistrement des détails terminé pour la réservation : {}", idReservation);
+    }
+}
+

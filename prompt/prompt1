@@ -1,0 +1,735 @@
+j utilise cette jwt comment model d authentification :
+voici les codes qui realise cette authentification jwt 
+
+package mg.itu.controller;
+
+import mg.itu.security.JwtTokenProvider;
+import mg.itu.service.AuthService;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.security.core.Authentication;
+import org.springframework.ui.Model;
+
+import jakarta.servlet.http.HttpSession;
+
+@Controller
+@RequestMapping("/auth")
+public class AuthController {
+
+    @Autowired
+    private JwtTokenProvider jwtTokenProvider;
+
+    @Autowired
+    private HttpSession session;
+
+    @Autowired
+    private AuthService authService;
+
+    @GetMapping("/login")
+    public String showLoginPage() {
+        return "views/auth/login"; 
+    }
+
+    @PostMapping("/login")
+    public String login(@RequestParam("email") String email, @RequestParam("password") String password, Model model) {
+        try {
+            Authentication auth = authService.authenticateAdmin(email, password);
+            return "redirect:/reservations"; 
+        } catch (RuntimeException e) {
+            model.addAttribute("error", e.getMessage());
+            return "views/auth/login";
+        }
+    }
+
+    @GetMapping("/logout")
+    public String logout() {
+        String jwtToken = (String) session.getAttribute("jwtToken");
+        if (jwtToken != null) {
+            jwtTokenProvider.invalidateToken(jwtToken); 
+        }
+        session.invalidate(); 
+        SecurityContextHolder.clearContext(); 
+        return "redirect:/auth/login"; 
+    }
+}
+
+
+package mg.itu.dto;
+
+public class AuthResponse {
+    private String accessToken;
+    private String tokenType = "Bearer";
+    private String idUtilisateur;
+    private String telephone;
+    private String role;
+
+    public AuthResponse(String accessToken, String idUtilisateur, String telephone, String role) {
+        this.accessToken = accessToken;
+        this.idUtilisateur = idUtilisateur;
+        this.telephone = telephone;
+        this.role = role;
+    }
+
+    
+
+    public AuthResponse(String accessToken, String telephone) {
+        this.accessToken = accessToken;
+        this.telephone = telephone;
+    }
+
+
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public String getIdUtilisateur() {
+        return idUtilisateur;
+    }
+
+    public void setIdUtilisateur(String idUtilisateur) {
+        this.idUtilisateur = idUtilisateur;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}
+
+
+package mg.itu.dto;
+
+public class AuthResponse {
+    private String accessToken;
+    private String tokenType = "Bearer";
+    private String idUtilisateur;
+    private String telephone;
+    private String role;
+
+    public AuthResponse(String accessToken, String idUtilisateur, String telephone, String role) {
+        this.accessToken = accessToken;
+        this.idUtilisateur = idUtilisateur;
+        this.telephone = telephone;
+        this.role = role;
+    }
+
+    
+
+    public AuthResponse(String accessToken, String telephone) {
+        this.accessToken = accessToken;
+        this.telephone = telephone;
+    }
+
+
+
+    public String getAccessToken() {
+        return accessToken;
+    }
+
+    public void setAccessToken(String accessToken) {
+        this.accessToken = accessToken;
+    }
+
+    public String getTokenType() {
+        return tokenType;
+    }
+
+    public void setTokenType(String tokenType) {
+        this.tokenType = tokenType;
+    }
+
+    public String getIdUtilisateur() {
+        return idUtilisateur;
+    }
+
+    public void setIdUtilisateur(String idUtilisateur) {
+        this.idUtilisateur = idUtilisateur;
+    }
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}
+
+
+package mg.itu.dto;
+
+public class LoginRequest {
+    private String telephone;
+    private String password;
+    private String userType; 
+
+    public String getTelephone() {
+        return telephone;
+    }
+
+    public void setTelephone(String telephone) {
+        this.telephone = telephone;
+    }
+
+    public String getPassword() {
+        return password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+    
+    public String getUserType() {
+        return userType;
+    }
+    
+    public void setUserType(String userType) {
+        this.userType = userType;
+    }
+
+    public LoginRequest(String telephone, String password) {
+        this.telephone = telephone;
+        this.password = password;
+    }
+
+    public LoginRequest(String telephone, String password, String userType) {
+        this.telephone = telephone;
+        this.password = password;
+        this.userType = userType;
+    }
+    public LoginRequest() {
+    }
+    
+}
+
+package mg.itu.exception;
+
+public class JwtAuthenticationException extends RuntimeException {
+    public JwtAuthenticationException(String message) {
+        super(message);
+    }
+}
+
+
+package mg.itu.exception;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
+
+@ResponseStatus(HttpStatus.NOT_FOUND)
+public class ResourceNotFoundException extends RuntimeException {
+    private String resourceName;
+    private String fieldName;
+    private Object fieldValue;
+
+    public ResourceNotFoundException(String resourceName, String fieldName, Object fieldValue) {
+        super(String.format("%s non trouvé avec %s : '%s'", resourceName, fieldName, fieldValue));
+        this.resourceName = resourceName;
+        this.fieldName = fieldName;
+        this.fieldValue = fieldValue;
+    }
+
+    public String getResourceName() {
+        return resourceName;
+    }
+
+    public String getFieldName() {
+        return fieldName;
+    }
+
+    public Object getFieldValue() {
+        return fieldValue;
+    }
+}
+
+
+package mg.itu.repository;
+
+import mg.itu.model.Utilisateur;
+
+
+import org.springframework.data.jpa.repository.JpaRepository;
+
+public interface UtilisateurRepository extends JpaRepository<Utilisateur, String> {
+    Utilisateur findByTelephone(String telephone);   
+    Utilisateur findByIdUtilisateur(String idUtilisateur);
+}
+
+package mg.itu.repository;
+
+import java.util.Optional;
+import org.springframework.data.jpa.repository.JpaRepository;
+import mg.itu.model.Role;
+
+public interface RoleRepository extends JpaRepository<Role, String> {
+    Optional<Role> findByLibelle(String libelle);
+}
+
+
+
+package mg.itu.security;
+
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.web.AuthenticationEntryPoint;
+import org.springframework.stereotype.Component;
+
+import java.io.IOException;
+
+@Component
+public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
+
+    @Override
+    public void commence(HttpServletRequest request,
+                         HttpServletResponse response,
+                         AuthenticationException authException) throws IOException, ServletException {
+        response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Non autorisé");
+    }
+}
+
+package mg.itu.security;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
+import org.springframework.util.StringUtils;
+import org.springframework.web.filter.OncePerRequestFilter;
+import mg.itu.exception.JwtAuthenticationException;
+import mg.itu.service.UserDetailsServiceImpl;
+
+import java.io.IOException;
+
+public class JwtAuthenticationFilter extends OncePerRequestFilter {
+
+    private static final Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+
+    @Autowired
+    private JwtTokenProvider tokenProvider;
+
+    @Autowired
+    private UserDetailsServiceImpl userDetailsService;
+
+    @Override
+    protected void doFilterInternal(HttpServletRequest request,
+                                   HttpServletResponse response,
+                                   FilterChain filterChain) throws ServletException, IOException {
+        try {
+            String token = getJwtFromRequest(request); 
+
+            if (token == null) {
+                logger.debug("No JWT token found");
+                filterChain.doFilter(request, response);
+                return;
+            }
+
+            String username = tokenProvider.getUsernameFromJWT(token);
+
+            if (StringUtils.hasText(username)) {
+                logger.debug("Processing authentication for user: {}", username);
+
+                if (tokenProvider.validateToken(token)) {
+                    authenticateUser(request, username);
+                    logger.debug("Authentication successful for user: {}", username);
+                } else {
+                    String refreshToken = tokenProvider.getStoredRefreshToken(username);
+                    if (refreshToken != null && tokenProvider.validateRefreshToken(refreshToken, username)) {
+                        logger.debug("JWT expired, attempting to refresh for user: {}", username);
+                        String newToken = tokenProvider.refreshToken(refreshToken, username);
+                        request.getSession().setAttribute("jwtToken", newToken); 
+                        authenticateUser(request, username);
+                        logger.debug("Token refreshed and authentication successful for user: {}", username);
+                    } else {
+                        logger.warn("Invalid or expired JWT token and no valid refresh token for user: {}", username);
+                        throw new JwtAuthenticationException("JWT invalide ou expiré. Veuillez vous reconnecter.");
+                    }
+                }
+            } else {
+                logger.debug("Could not extract username from JWT token");
+            }
+
+            filterChain.doFilter(request, response);
+        } catch (JwtAuthenticationException ex) {
+            logger.error("JWT Authentication failed: {}", ex.getMessage());
+            sendAuthenticationError(response, ex.getMessage());
+        } catch (Exception ex) {
+            logger.error("Unexpected error during JWT authentication", ex);
+            sendAuthenticationError(response, "Une erreur s'est produite lors de l'authentification");
+        }
+    }
+
+    private void authenticateUser(HttpServletRequest request, String username) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                userDetails, null, userDetails.getAuthorities());
+        authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+    }
+
+    private void sendAuthenticationError(HttpServletResponse response, String errorMessage) throws IOException {
+        response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+        response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+        response.getWriter().write(String.format("{\"error\": \"%s\"}", errorMessage));
+        response.getWriter().flush();
+    }
+
+    private String getJwtFromRequest(HttpServletRequest request) {
+        String bearerToken = request.getHeader("Authorization");
+        if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
+            return bearerToken.substring(7);
+        }
+        
+        return (String) request.getSession().getAttribute("jwtToken");
+    }
+}
+
+
+package mg.itu.security;
+
+import io.jsonwebtoken.*;
+import mg.itu.model.Utilisateur;
+import mg.itu.repository.UtilisateurRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.stereotype.Component;
+
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.TimeZone;
+import java.util.concurrent.TimeUnit;
+import mg.itu.dto.LoginRequest;
+
+@Component
+public class JwtTokenProvider {
+
+    @Value("${app.jwtSecret}")
+    private String jwtSecret;
+
+    @Value("${app.jwt-expiration-milliseconds}")
+    private int jwtExpirationInMs;
+
+    @Value("${app.refreshTokenExpirationInMs}")
+    private int refreshTokenExpirationInMs;
+
+    @Autowired
+    private UtilisateurRepository utilisateurRepository;
+
+    @Autowired
+    private RedisTemplate<String, String> redisTemplate;
+
+    private static final String BLACKLIST_PREFIX = "jwt:blacklist:";
+    private static final String REFRESH_TOKEN_PREFIX = "jwt:refresh:";
+
+    public String generateToken(String username, String role) {
+        long now = System.currentTimeMillis();
+        long expiryTime = now + jwtExpirationInMs;
+
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("userId", username)
+                .claim("role", role)
+                .setIssuedAt(new Date(now))
+                .setExpiration(new Date(expiryTime))
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
+    }
+
+    public String refreshToken(String refreshToken, String username) {
+        if (validateRefreshToken(refreshToken, username)) {
+            Utilisateur user = utilisateurRepository.findByTelephone(username);
+            if (user == null) {
+                throw new IllegalArgumentException("Utilisateur non trouvé : " + username);
+            }
+            String role = user.getIdRole().getIdRole(); 
+            String newJwt = generateToken(username, role);
+            
+            invalidateToken(refreshToken);
+            
+            String newRefreshToken = generateRefreshToken(username);
+            storeRefreshToken(newRefreshToken, username);
+            return newJwt;
+        }
+        throw new IllegalArgumentException("Refresh token invalide ou expiré");
+    }
+
+    public LoginRequest getUserDetailsFromJWT(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(jwtSecret)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            Utilisateur u = utilisateurRepository.findByTelephone(claims.getSubject());
+            return new LoginRequest(u.getTelephone(), u.getPassword(), claims.get("role", String.class));
+        } catch (ExpiredJwtException ex) {
+            Claims claims = ex.getClaims();
+            Utilisateur u = utilisateurRepository.findByTelephone(claims.getSubject());
+            return new LoginRequest(u.getTelephone(), u.getPassword(), claims.get("role", String.class));
+        }
+    }
+
+    public String getUsernameFromJWT(String token) {
+        if (token != null && !token.isEmpty()) {
+            try {
+                Claims claims = Jwts.parserBuilder()
+                        .setSigningKey(jwtSecret)
+                        .build()
+                        .parseClaimsJws(token)
+                        .getBody();
+                return claims.getSubject();
+            } catch (ExpiredJwtException ex) {
+                return ex.getClaims().getSubject();
+            }
+        }
+        return null;
+    }
+
+    public Date getExpirationFromJWT(String token) {
+        try {
+            Claims claims = Jwts.parserBuilder()
+                    .setSigningKey(jwtSecret)
+                    .build()
+                    .parseClaimsJws(token)
+                    .getBody();
+            return claims.getExpiration();
+        } catch (JwtException ex) {
+            return new Date(0); 
+        }
+    }
+
+    public boolean validateToken(String authToken) {
+        try {
+            if (isTokenBlacklisted(authToken)) {
+                return false;
+            }
+            Jwts.parserBuilder().setSigningKey(jwtSecret).build().parseClaimsJws(authToken);
+            return true;
+        } catch (JwtException | IllegalArgumentException ex) {
+            return false;
+        }
+    }
+
+    public void invalidateToken(String token) {
+        long ttl = getExpirationFromJWT(token).getTime() - System.currentTimeMillis();
+        if (ttl > 0) {
+            redisTemplate.opsForValue().set(BLACKLIST_PREFIX + token, "blacklisted", ttl, TimeUnit.MILLISECONDS);
+        }
+    }
+
+    public boolean isTokenBlacklisted(String token) {
+        return Boolean.TRUE.equals(redisTemplate.hasKey(BLACKLIST_PREFIX + token));
+    }
+
+    public String generateRefreshToken(String username) {
+        long now = System.currentTimeMillis();
+        long expiryTime = now + refreshTokenExpirationInMs;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Date expiryDate = new Date(expiryTime);
+
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(expiryDate)
+                .signWith(SignatureAlgorithm.HS512, jwtSecret)
+                .compact();
+    }
+
+    public void storeRefreshToken(String refreshToken, String username) {
+        long ttl = getExpirationFromJWT(refreshToken).getTime() - System.currentTimeMillis();
+        redisTemplate.opsForValue().set(REFRESH_TOKEN_PREFIX + username, refreshToken, ttl, TimeUnit.MILLISECONDS);
+    }
+
+    public String getStoredRefreshToken(String username) {
+        return redisTemplate.opsForValue().get(REFRESH_TOKEN_PREFIX + username);
+    }
+
+    public boolean validateRefreshToken(String refreshToken, String username) {
+        String storedToken = getStoredRefreshToken(username);
+        if (refreshToken == null || storedToken == null || !refreshToken.equals(storedToken)) {
+            return false;
+        }
+        try {
+            Jwts.parserBuilder().setSigningKey(jwtSecret).build().parseClaimsJws(refreshToken);
+            return true;
+        } catch (JwtException ex) {
+            return false;
+        }
+    }
+
+    public void invalidateRefreshToken(String username) {
+        redisTemplate.delete(REFRESH_TOKEN_PREFIX + username);
+    }
+}
+
+
+package mg.itu.security;
+
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.data.redis.connection.RedisConnectionFactory;
+import org.springframework.data.redis.connection.lettuce.LettuceConnectionFactory;
+import org.springframework.data.redis.core.RedisTemplate;
+import org.springframework.data.redis.serializer.StringRedisSerializer;
+
+@Configuration
+public class RedisConfig {
+
+    @Bean
+    public RedisConnectionFactory redisConnectionFactory() {
+        return new LettuceConnectionFactory();
+    }
+
+    @Bean
+    public RedisTemplate<String, String> redisTemplate(RedisConnectionFactory connectionFactory) {
+        RedisTemplate<String, String> template = new RedisTemplate<>();
+        template.setConnectionFactory(connectionFactory);
+        template.setKeySerializer(new StringRedisSerializer());
+        template.setValueSerializer(new StringRedisSerializer());
+        return template;
+    }
+}
+
+package mg.itu.security;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+
+import java.util.Arrays;
+@Configuration
+@EnableWebSecurity
+@EnableMethodSecurity
+public class SecurityConfig {
+
+    @Autowired
+    private JwtAuthenticationEntryPoint jwtAuthenticationEntryPoint;
+    
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Bean
+    public JwtAuthenticationFilter jwtAuthenticationFilter() {
+        return new JwtAuthenticationFilter();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .cors().and()
+            .csrf().disable()
+            .exceptionHandling()
+                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
+            .and()
+            .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+            .and()
+            .authorizeHttpRequests()
+                .requestMatchers("/auth/**").permitAll()
+                .requestMatchers("/css/**", "/js/**", "/images/**", "/webjars/**").permitAll()
+                .requestMatchers("/reservations/**").hasRole("ADMIN")
+                .anyRequest().authenticated()
+                .and()
+                .httpBasic()
+                .and()
+                .csrf().disable();
+        
+        http.addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class);
+        
+        return http.build();
+    }
+    
+    @Bean
+    CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(Arrays.asList("*"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(Arrays.asList("authorization", "content-type", "x-auth-token"));
+        configuration.setExposedHeaders(Arrays.asList("x-auth-token"));
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder, UserDetailsService userDetailsService) throws Exception {
+        return http.getSharedObject(AuthenticationManagerBuilder.class)
+                .userDetailsService(userDetailsService)
+                .passwordEncoder(passwordEncoder)
+                .and()
+                .build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+}
+
+
+le probleme c est que apres la premier login si le token est expire il affcihe toujours cette erreur : throw new JwtAuthenticationException("JWT invalide ou expiré. Veuillez vous reconnecter."); meme si j entre dans l url d authentification alors que j ai fait permaite all au url d autentification 
+: .requestMatchers("/auth/**").permitAll() cette exeption et lever dans JwtAuthenticationFilter 

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="fr" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Réservations</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+    <div th:replace="~{fragments/side-bar}"></div>
+
+    <div class="header">
+        <h1>Réservations</h1>
+    </div>
+
+    <div class="table-container" th:if="${reservations}">
+        <div class="table-responsive">
+            <table class="projects-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Date</th>
+                        <th>Prix</th>
+                        <th>Vol</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr th:each="reservation : ${reservations}">
+                        <td th:text="${reservation.idReservation}"></td>
+                        <td th:text="${reservation.dateReservation}"></td>
+                        <td th:text="${reservation.prix} + ' €'"></td>
+                        <td th:text="${reservation.volInfo}"></td>
+                        <td>
+                            <a th:href="@{/reservations/details/{id}(id=${reservation.idReservation})}" class="btn btn-edit">Ajouter détails</a>
+                            <a th:href="@{/reservations/view/{id}(id=${reservation.idReservation})}" class="btn btn-view">Voir détails</a>
+                        </td>
+                    </tr>
+                    <tr th:if="${#lists.isEmpty(reservations)}">
+                        <td colspan="5">Aucune réservation trouvée</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div th:replace="~{fragments/footer}"></div>
+</body>
+</html>
